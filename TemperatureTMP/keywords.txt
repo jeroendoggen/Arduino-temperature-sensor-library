@@ -1,0 +1,29 @@
+##################################################
+# Syntax Coloring Map For TemperatureTMP Library #
+##################################################
+
+##################################################
+# Datatypes (KEYWORD1)
+##################################################
+
+TemperatureTMP KEYWORD1
+
+##################################################
+# Methods and Functions (KEYWORD2)
+##################################################
+
+begin KEYWORD2
+setARefVoltage  KEYWORD2
+getTemperatureRaw KEYWORD2
+getTemperatureCelcius KEYWORD2
+getTemperatureFahrenheit KEYWORD2
+
+##################################################
+# Objects (KEYWORD3)
+##################################################
+
+Temperature KEYWORD3
+
+##################################################
+# Constants (LITERAL1)
+##################################################
