@@ -24,6 +24,8 @@
 /// Constructor
 TemperatureTMP::TemperatureTMP()
 {
+  _temperaturePin=0;
+  _refVoltage=0;
 }
 
 /// Begin function to set pins: temperaturePin = A0.

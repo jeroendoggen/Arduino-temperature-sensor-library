@@ -17,22 +17,29 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-
-SCRIPTPATH="`pwd`"
-
-SUCCESCOUNTER=0
-FAILURECOUNTER=0
-
 ##################################################################  
 # SELECT FILES TO BUILD                                          #
 ##################################################################
 
-FILES[0]='examples/RawData/'
-FILES[1]='examples/Temperature/'
+FILES[0]='examples/G_Force/'
+FILES[1]='examples/RawData/'
+FILES[2]='examples/Voltage/'
 
 # select the range of file you want to build (from FIRSTFILE up to LASTFILE)
 FIRSTFILE=0
-LASTFILE=1
+LASTFILE=2
+
+##################################################################  
+# SCRIPT SETTINGS                                               #
+##################################################################
+
+SCRIPTPATH="`pwd`"
+CPPCHECKOPTIONS="--enable=all --error-exitcode=1 --std=c99 --std=posix  --std=c++11 -v"
+
+SUCCESCOUNTER=0
+FAILURECOUNTER=0
+CODECHECKFAILURECOUNTER=0
+CODECHECKSUCCESCOUNTER=0
 
 ##################################################################  
 # FUNCTIONS                                                      #
@@ -49,8 +56,8 @@ function buildFile
         let SUCCESCOUNTER++ 
 
     else
-      echo "Errors in folder: '`pwd | awk -F/ '{print $NF}'`' "
-      echo "`date`: Errors in folder: '`pwd | awk -F/ '{print $NF}'`' " >> $SCRIPTPATH/errors.log
+      echo "Build errors in folder: '`pwd | awk -F/ '{print $NF}'`' "
+      echo "`date`: Build errors in folder: '`pwd | awk -F/ '{print $NF}'`' " >> $SCRIPTPATH/errors.log
       let FAILURECOUNTER++
   fi
 }
@@ -69,11 +76,12 @@ function cleanPreviousBuilds
       rm *.hex
   fi
 
-  ls | grep build> /dev/null
-  if [ $? -eq 0 ] 
-    then 
-      rm -rf build
-  fi
+# Comment these 5 lines to ignore warnings from the first build (e.g. warnings from Arduino core libraries)
+#   ls | grep build> /dev/null
+#   if [ $? -eq 0 ] 
+#     then 
+#       rm -rf build
+#   fi
 }
 
 function CreateLogfiles 
@@ -97,22 +105,95 @@ function CreateLogfiles
 
 function PrintStats
 {
-  echo "-------------------------'"
-  echo "| Succesfull builds : $SUCCESCOUNTER |"
-  echo "| Failed builds     : $FAILURECOUNTER |"
-  echo "-------------------------'"
+  echo "------------------------------"
+  echo "| Succesfull builds : $SUCCESCOUNTER      |"
+  echo "| Failed builds     : $FAILURECOUNTER      |"
+  echo "|----------------------------|"
+  echo "| Succesfull code checks : $CODECHECKSUCCESCOUNTER |"
+  echo "| Failed code checks     : $CODECHECKFAILURECOUNTER |"
+  echo "------------------------------"
 }
+
+function logStats
+{
+  echo "--------------------------------" > $SCRIPTPATH/lastbuild.log
+  echo "| `date` |" >> $SCRIPTPATH/lastbuild.log
+  echo "--------------------------------" >> $SCRIPTPATH/lastbuild.log
+  echo "| Succesfull builds : $SUCCESCOUNTER        |" >> $SCRIPTPATH/lastbuild.log
+  echo "| Failed builds     : $FAILURECOUNTER        |" >> $SCRIPTPATH/lastbuild.log
+  echo "|------------------------------|" >> lastbuild.log
+  echo "| Succesfull code checks : $CODECHECKSUCCESCOUNTER   |" >> $SCRIPTPATH/lastbuild.log
+  echo "| Failed code checks     : $CODECHECKFAILURECOUNTER   |" >> $SCRIPTPATH/lastbuild.log
+  echo "--------------------------------" >> $SCRIPTPATH/lastbuild.log
+}
+
+function buildFiles
+{
+  for ((i=FIRSTFILE;i<=LASTFILE;i++)); do
+    cd ${FILES[i]}
+    buildFile
+    cd $SCRIPTPATH
+  done
+}
+
+function staticCodeCheck
+{
+  for ((i=FIRSTFILE;i<=LASTFILE;i++)); do
+    cd ${FILES[i]}
+    staticCodeCheckFile
+    cd $SCRIPTPATH
+  done
+
+  cppcheck $CPPCHECKOPTIONS *.h > /dev/null
+  if [ $? -eq 0 ] 
+    then
+      echo "Cppcheck OK in header file(s)"
+      echo "`date`: Cppcheck OK in header file(s)" >> $SCRIPTPATH/succes.log
+        let CODECHECKSUCCESCOUNTER++ 
+
+    else
+      echo "Cppcheck errors in header file(s)"
+      echo "`date`: Cppcheck errors in header file(s)" >> $SCRIPTPATH/errors.log
+      let CODECHECKFAILURECOUNTER++
+  fi
+
+  cppcheck $CPPCHECKOPTIONS *.cpp > /dev/null
+  if [ $? -eq 0 ] 
+    then
+      echo "Cppcheck OK in cpp file(s)"
+      echo "`date`: Cppcheck OK in cpp file(s)" >> $SCRIPTPATH/succes.log
+        let CODECHECKSUCCESCOUNTER++ 
+
+    else
+      echo "Cppcheck errors in cpp file(s)"
+      echo "`date`: Cppcheck errors in cpp file(s)" >> $SCRIPTPATH/errors.log
+      let CODECHECKFAILURECOUNTER++
+  fi
+}
+
+function staticCodeCheckFile
+{
+  cppcheck $CPPCHECKOPTIONS *.ino > /dev/null
+  if [ $? -eq 0 ] 
+    then
+      echo "Cppcheck OK in folder: '`pwd | awk -F/ '{print $NF}'`' "
+      echo "`date`: Cppcheck OK in folder: '`pwd | awk -F/ '{print $NF}'`' " >> $SCRIPTPATH/succes.log
+        let CODECHECKSUCCESCOUNTER++ 
+
+    else
+      echo "Cppcheck errors in folder: '`pwd | awk -F/ '{print $NF}'`' "
+      echo "`date`: Cppcheck errors in folder: '`pwd | awk -F/ '{print $NF}'`' " >> $SCRIPTPATH/errors.log
+      let CODECHECKFAILURECOUNTER++
+  fi
+}
+
 
 ##################################################################  
 # MAIN CODE STARTS HERE                                          #
 ##################################################################
 
 CreateLogfiles
-
-for ((i=FIRSTFILE;i<=LASTFILE;i++)); do
-  cd ${FILES[i]}
-  buildFile
-  cd $SCRIPTPATH
-done
-
+buildFiles
+staticCodeCheck
 PrintStats
+logStats
