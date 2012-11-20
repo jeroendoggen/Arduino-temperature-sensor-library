@@ -76,6 +76,10 @@ float TemperatureTMP::getTemperatureCelcius()
 // Calculation based on estimated tranfer function temp = 0.3381954 * ADCvalue - 54.61202  (for Aref = 5 Volt)
 // Truncated to 4 significant digits because of the 10 bit ADC
   }
+  else
+  {
+    return (0);
+  }
 }
 
 /// getTemperaturePercentage(): Returns the temperature percentage
